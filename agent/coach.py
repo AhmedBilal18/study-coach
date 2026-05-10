@@ -18,18 +18,28 @@ def _parse(raw_text):
 
 def generate_quiz(topic, image_b64=None, num_questions=5, age=15):
     messages = [{"role": "system", "content": QUIZ_SYSTEM}]
+    
+    if age <= 10:
+        age_instruction = f"CRITICAL: The user is a young child (age {age}). Use extremely simple vocabulary, short sentences, and basic introductory concepts. Make the wrong options obvious and fun."
+    elif age <= 14:
+        age_instruction = f"CRITICAL: The user is a middle school student (age {age}). Use accessible language and foundational concepts. Avoid overly complex jargon."
+    elif age <= 18:
+        age_instruction = f"CRITICAL: The user is a high school student (age {age}). Use standard academic vocabulary and challenging but fair distractors."
+    else:
+        age_instruction = f"CRITICAL: The user is an adult/college student (age {age}). Use highly advanced terminology, complex conceptual questions, and nuanced distractors that require deep understanding."
+
     if image_b64 is not None:
         messages.append({
             "role": "user",
             "content": [
                 {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}},
-                {"type": "text", "text": f"Based on these notes, generate a {num_questions}-question quiz. The user is {age} years old. Adjust the difficulty, complexity, and vocabulary to perfectly match a {age}-year-old."}
+                {"type": "text", "text": f"Based on these notes, generate a {num_questions}-question quiz.\n\n{age_instruction}"}
             ]
         })
     else:
         messages.append({
             "role": "user",
-            "content": f"Generate a {num_questions}-question quiz on: {topic}. The user is {age} years old. Adjust the difficulty, complexity, and vocabulary to perfectly match a {age}-year-old."
+            "content": f"Generate a {num_questions}-question quiz on: {topic}.\n\n{age_instruction}"
         })
     try:
         model_name = "meta-llama/llama-4-scout-17b-16e-instruct" if image_b64 is not None else "llama-3.3-70b-versatile"

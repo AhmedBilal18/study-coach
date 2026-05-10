@@ -107,6 +107,7 @@ with col1:
         st.divider()
         
         topic = st.text_input("What topic do you want to study?", placeholder="e.g. Photosynthesis, World War 2, Newton's Laws")
+        num_questions = st.number_input("Number of questions", min_value=1, max_value=30, value=5)
         uploaded_file = st.file_uploader("Or upload a photo of your handwritten notes", type=["jpg", "jpeg", "png"])
         
         if uploaded_file is not None:
@@ -132,7 +133,7 @@ with col1:
                     image_b64 = None
                     
                 try:
-                    quiz_result = generate_quiz(topic, image_b64)
+                    quiz_result = generate_quiz(topic, image_b64, num_questions)
                 except ValueError as e:
                     st.error(f"Failed to generate quiz. {str(e)}")
                     st.info("If you are getting a 'insufficient_quota' error, it means your OpenAI account has run out of credits. Please visit platform.openai.com to top up your account.")
@@ -212,6 +213,11 @@ with col1:
         if analysis and analysis.get("encouragement"):
             st.success(analysis['encouragement'])
             
+        if analysis and analysis.get("resources"):
+            st.markdown("### 📺 Recommended Resources")
+            for res in analysis["resources"]:
+                st.markdown(f"- [{res.get('title', 'Watch Video')}]({res.get('url', '#')})")
+            
         if st.button("🔄 Take Another Quiz", use_container_width=True):
             st.session_state.stage = "input"
             st.session_state.quiz = None
@@ -273,6 +279,10 @@ with col2:
             st.info(analysis["next_task"])
         if analysis.get("encouragement"):
             st.success(analysis["encouragement"])
+        if analysis.get("resources"):
+            st.markdown("**📺 Resources to Review:**")
+            for res in analysis["resources"]:
+                st.markdown(f"- [{res.get('title', 'Watch Video')}]({res.get('url', '#')})")
             
     st.divider()
     st.caption("Powered by GPT-4o · Adaptive Study Coach")

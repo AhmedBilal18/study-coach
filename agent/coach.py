@@ -14,20 +14,20 @@ def _parse(raw_text):
     except Exception:
         return None
 
-def generate_quiz(topic, image_b64=None):
+def generate_quiz(topic, image_b64=None, num_questions=5):
     messages = [{"role": "system", "content": QUIZ_SYSTEM}]
     if image_b64 is not None:
         messages.append({
             "role": "user",
             "content": [
                 {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}},
-                {"type": "text", "text": "Based on these notes, generate a 5-question quiz."}
+                {"type": "text", "text": f"Based on these notes, generate a {num_questions}-question quiz."}
             ]
         })
     else:
         messages.append({
             "role": "user",
-            "content": f"Generate a 5-question quiz on: {topic}"
+            "content": f"Generate a {num_questions}-question quiz on: {topic}"
         })
     try:
         model_name = "meta-llama/llama-4-scout-17b-16e-instruct" if image_b64 is not None else "llama-3.3-70b-versatile"
@@ -47,6 +47,7 @@ def analyze_results(wrong_answers):
     if not wrong_answers:
         return {
             "weak": [],
+            "resources": [],
             "next_task": "Excellent — no weak areas detected!",
             "encouragement": "Perfect score, keep it up!"
         }
@@ -62,10 +63,10 @@ def analyze_results(wrong_answers):
         )
         parsed = _parse(response.choices[0].message.content)
         if parsed is None:
-            return {"weak": [], "next_task": "Could not analyze results.", "encouragement": "Keep studying!"}
+            return {"weak": [], "resources": [], "next_task": "Could not analyze results.", "encouragement": "Keep studying!"}
         return parsed
     except Exception:
-        return {"weak": [], "next_task": "Could not analyze results.", "encouragement": "Keep studying!"}
+        return {"weak": [], "resources": [], "next_task": "Could not analyze results.", "encouragement": "Keep studying!"}
 
 def stress_mode_plan(weak_concepts):
     if not weak_concepts:

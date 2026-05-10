@@ -1,13 +1,11 @@
-from dotenv import load_dotenv
-load_dotenv()
-
 import os
 import json
+from dotenv import load_dotenv
+load_dotenv()
 from groq import Groq
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-
 from agent.prompts import QUIZ_SYSTEM, ANALYZE_SYSTEM, STRESS_SYSTEM
 
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def _parse(raw_text):
     try:
@@ -17,9 +15,7 @@ def _parse(raw_text):
         return None
 
 def generate_quiz(topic, image_b64=None):
-    messages = [
-        {"role": "system", "content": QUIZ_SYSTEM}
-    ]
+    messages = [{"role": "system", "content": QUIZ_SYSTEM}]
     if image_b64 is not None:
         messages.append({
             "role": "user",
@@ -33,7 +29,6 @@ def generate_quiz(topic, image_b64=None):
             "role": "user",
             "content": f"Generate a 5-question quiz on: {topic}"
         })
-        
     try:
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
@@ -42,43 +37,51 @@ def generate_quiz(topic, image_b64=None):
         )
         parsed = _parse(response.choices[0].message.content)
         if parsed is None:
-            raise ValueError("Quiz generation failed — OpenAI returned unexpected format")
+            raise ValueError("Quiz generation failed — unexpected format")
         return parsed
     except Exception as e:
         raise ValueError(f"OpenAI API Error: {str(e)}")
 
 def analyze_results(wrong_answers):
     if not wrong_answers:
-        return {"weak": [], "next_task": "Excellent — no weak areas detected!", "encouragement": "Perfect score, keep it up!"}
-    
+        return {
+            "weak": [],
+            "next_task": "Excellent — no weak areas detected!",
+            "encouragement": "Perfect score, keep it up!"
+        }
     messages = [
         {"role": "system", "content": ANALYZE_SYSTEM},
         {"role": "user", "content": json.dumps(wrong_answers)}
     ]
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=messages,
-        max_tokens=500
-    )
-    parsed = _parse(response.choices[0].message.content)
-    if parsed is None:
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=messages,
+            max_tokens=500
+        )
+        parsed = _parse(response.choices[0].message.content)
+        if parsed is None:
+            return {"weak": [], "next_task": "Could not analyze results.", "encouragement": "Keep studying!"}
+        return parsed
+    except Exception:
         return {"weak": [], "next_task": "Could not analyze results.", "encouragement": "Keep studying!"}
-    return parsed
 
 def stress_mode_plan(weak_concepts):
     if not weak_concepts:
         return {"plan": [{"priority": 1, "topic": "All clear", "action": "Light review of all notes", "time_mins": 10}]}
-        
     messages = [
         {"role": "system", "content": STRESS_SYSTEM},
         {"role": "user", "content": json.dumps(weak_concepts)}
     ]
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=messages,
-        max_tokens=500
-    )
-    parsed = _parse(response.choices[0].message.content)
-    if parsed is None:
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=messages,
+            max_tokens=500
+        )
+        parsed = _parse(response.choices[0].message.content)
+        if parsed is None:
+            return {"plan": [{"priority": 1, "topic": "Review weak areas", "action": "Re-read your notes carefully", "time_mins": 20}]}
+        return parsed
+    except Exception:
         return {"plan": [{"priority": 1, "topic": "Review weak areas", "action": "Re-read your notes carefully", "time_mins": 20}]}
-    return parsed

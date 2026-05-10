@@ -4,7 +4,7 @@ load_dotenv()
 import os
 import json
 from groq import Groq
-client = Groq(api_key="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")
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 from agent.prompts import QUIZ_SYSTEM, ANALYZE_SYSTEM, STRESS_SYSTEM
 

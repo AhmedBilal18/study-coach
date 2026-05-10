@@ -1,3 +1,4 @@
+def new_profile():
     return {
         "topic": "",
         "age": 15,

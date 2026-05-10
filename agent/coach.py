@@ -33,6 +33,15 @@ def _parse(raw_text):
     except Exception:
         return None
 
+def extract_text_from_pdf(pdf_bytes):
+    import fitz
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    text = ""
+    for page in doc:
+        text += page.get_text()
+    doc.close()
+    return text.strip()
+
 def generate_quiz(topic, image_b64=None, pdf_text=None, num_questions=5, age=15):
     messages = [{"role": "system", "content": QUIZ_SYSTEM}]
     

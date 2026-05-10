@@ -30,7 +30,7 @@ def generate_quiz(topic, image_b64=None):
             "content": f"Generate a 5-question quiz on: {topic}"
         })
     try:
-        model_name = "llama-3.2-90b-vision-preview" if image_b64 is not None else "llama-3.3-70b-versatile"
+        model_name = "llama-3.2-11b-vision-preview" if image_b64 is not None else "llama-3.3-70b-versatile"
         response = client.chat.completions.create(
             model=model_name,
             messages=messages,

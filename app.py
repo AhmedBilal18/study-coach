@@ -107,7 +107,13 @@ with col1:
         st.divider()
         
         topic = st.text_input("What topic do you want to study?", placeholder="e.g. Photosynthesis, World War 2, Newton's Laws")
-        num_questions = st.number_input("Number of questions", min_value=1, max_value=30, value=5)
+        
+        colA, colB = st.columns(2)
+        with colA:
+            num_questions = st.number_input("Number of questions", min_value=1, max_value=30, value=5)
+        with colB:
+            age = st.number_input("Your Age", min_value=5, max_value=100, value=15)
+            
         uploaded_file = st.file_uploader("Or upload a photo of your handwritten notes", type=["jpg", "jpeg", "png"])
         
         if uploaded_file is not None:
@@ -133,7 +139,7 @@ with col1:
                     image_b64 = None
                     
                 try:
-                    quiz_result = generate_quiz(topic, image_b64, num_questions)
+                    quiz_result = generate_quiz(topic, image_b64, num_questions, age)
                 except ValueError as e:
                     st.error(f"Failed to generate quiz. {str(e)}")
                     st.info("If you are getting a 'insufficient_quota' error, it means your OpenAI account has run out of credits. Please visit platform.openai.com to top up your account.")
@@ -147,6 +153,7 @@ with col1:
                 st.session_state.stress_plan = None
                 st.session_state.stage = "quiz"
                 st.session_state.profile["topic"] = topic
+                st.session_state.profile["age"] = age
                 st.rerun()
 
     elif st.session_state.stage == "quiz":
@@ -216,7 +223,9 @@ with col1:
         if analysis and analysis.get("resources"):
             st.markdown("### 📺 Recommended Resources")
             for res in analysis["resources"]:
-                st.markdown(f"- [{res.get('title', 'Watch Video')}]({res.get('url', '#')})")
+                st.markdown(f"**[{res.get('title', 'Watch Video')}]({res.get('url', '#')})**")
+                if "video_id" in res:
+                    st.image(f"https://img.youtube.com/vi/{res['video_id']}/mqdefault.jpg", width=320)
             
         if st.button("🔄 Take Another Quiz", use_container_width=True):
             st.session_state.stage = "input"
@@ -236,6 +245,8 @@ with col2:
     st.divider()
     
     st.markdown(f"**Topic:** {profile['topic'] or 'Not started yet'}")
+    if profile.get('topic'):
+        st.markdown(f"**Age Level:** {profile.get('age', 15)} years old")
     
     st.metric("Score", f"{profile['score']}/{profile['total']}")
     
@@ -282,7 +293,9 @@ with col2:
         if analysis.get("resources"):
             st.markdown("**📺 Resources to Review:**")
             for res in analysis["resources"]:
-                st.markdown(f"- [{res.get('title', 'Watch Video')}]({res.get('url', '#')})")
+                st.markdown(f"**[{res.get('title', 'Watch Video')}]({res.get('url', '#')})**")
+                if "video_id" in res:
+                    st.image(f"https://img.youtube.com/vi/{res['video_id']}/mqdefault.jpg", use_container_width=True)
             
     st.divider()
     st.caption("Powered by GPT-4o · Adaptive Study Coach")

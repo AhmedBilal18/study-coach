@@ -1,6 +1,6 @@
-def new_profile():
     return {
         "topic": "",
+        "age": 15,
         "strong": [],
         "weak": [],
         "quiz_history": [],

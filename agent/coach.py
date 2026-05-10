@@ -1,5 +1,7 @@
 import os
 import json
+import re
+import urllib.request
 from dotenv import load_dotenv
 load_dotenv()
 from groq import Groq
@@ -14,20 +16,20 @@ def _parse(raw_text):
     except Exception:
         return None
 
-def generate_quiz(topic, image_b64=None, num_questions=5):
+def generate_quiz(topic, image_b64=None, num_questions=5, age=15):
     messages = [{"role": "system", "content": QUIZ_SYSTEM}]
     if image_b64 is not None:
         messages.append({
             "role": "user",
             "content": [
                 {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}},
-                {"type": "text", "text": f"Based on these notes, generate a {num_questions}-question quiz."}
+                {"type": "text", "text": f"Based on these notes, generate a {num_questions}-question quiz. The user is {age} years old. Adjust the difficulty, complexity, and vocabulary to perfectly match a {age}-year-old."}
             ]
         })
     else:
         messages.append({
             "role": "user",
-            "content": f"Generate a {num_questions}-question quiz on: {topic}"
+            "content": f"Generate a {num_questions}-question quiz on: {topic}. The user is {age} years old. Adjust the difficulty, complexity, and vocabulary to perfectly match a {age}-year-old."
         })
     try:
         model_name = "meta-llama/llama-4-scout-17b-16e-instruct" if image_b64 is not None else "llama-3.3-70b-versatile"
@@ -64,6 +66,20 @@ def analyze_results(wrong_answers):
         parsed = _parse(response.choices[0].message.content)
         if parsed is None:
             return {"weak": [], "resources": [], "next_task": "Could not analyze results.", "encouragement": "Keep studying!"}
+            
+        for res in parsed.get("resources", []):
+            url = res.get("url", "")
+            if url:
+                try:
+                    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                    html = urllib.request.urlopen(req, timeout=3).read().decode('utf-8')
+                    video_ids = re.findall(r'"videoId":"(.{11})"', html)
+                    if video_ids:
+                        res["video_id"] = video_ids[0]
+                        res["url"] = f"https://www.youtube.com/watch?v={video_ids[0]}"
+                except Exception:
+                    pass
+                    
         return parsed
     except Exception:
         return {"weak": [], "resources": [], "next_task": "Could not analyze results.", "encouragement": "Keep studying!"}

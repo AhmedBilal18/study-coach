@@ -97,6 +97,8 @@ if "stress_mode" not in st.session_state:
     st.session_state.stress_mode = False
 if "selected_answers" not in st.session_state:
     st.session_state.selected_answers = []
+if "quiz_results" not in st.session_state:
+    st.session_state.quiz_results = []
 
 col1, col2 = st.columns([1.1, 0.9], gap="large")
 
@@ -180,6 +182,7 @@ with col1:
                 st.rerun()
             else:
                 results = build_results(st.session_state.quiz, st.session_state.selected_answers)
+                st.session_state.quiz_results = results
                 st.session_state.profile = update_profile(st.session_state.profile, results)
                 wrong = get_wrong_answers(results)
                 
@@ -213,6 +216,18 @@ with col1:
             
         st.divider()
         
+        if st.session_state.quiz_results:
+            st.markdown("### 📝 Question Review")
+            for i, res in enumerate(st.session_state.quiz_results):
+                with st.container(border=True):
+                    st.markdown(f"**Q{i+1}: {res['question']}**")
+                    if res['correct']:
+                        st.success(f"✅ **You got it right!** Answer: {res['selected']}")
+                    else:
+                        st.error(f"❌ **Your Answer:** {res['selected']}")
+                        st.info(f"💡 **Correct Answer:** {res['correct_answer']}")
+            st.divider()
+        
         analysis = st.session_state.analysis
         if analysis and analysis.get("next_task"):
             st.info(f"📌 Next: {analysis['next_task']}")
@@ -233,6 +248,7 @@ with col1:
             st.session_state.current_q = 0
             st.session_state.answers = []
             st.session_state.selected_answers = []
+            st.session_state.quiz_results = []
             st.session_state.analysis = None
             st.session_state.stress_plan = None
             st.session_state.profile = new_profile()

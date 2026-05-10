@@ -6,7 +6,7 @@ load_dotenv()
 
 import streamlit as st
 from agent import generate_quiz, analyze_results, stress_mode_plan, new_profile, update_profile, build_results, get_wrong_answers, calculate_score
-
+from agent.coach import extract_text_from_pdf
 st.set_page_config(page_title="Study Coach", page_icon="🎓", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
@@ -144,7 +144,6 @@ with col1:
                 uploaded_file.seek(0)
                 if uploaded_file.type == "application/pdf":
                     with st.spinner("Reading PDF..."):
-                        from agent.coach import extract_text_from_pdf
                         pdf_text = extract_text_from_pdf(uploaded_file.read())
                         if not pdf_text:
                             st.error("Could not extract text from PDF. Make sure it is not a scanned image PDF.")

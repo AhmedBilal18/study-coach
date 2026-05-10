@@ -7,7 +7,24 @@ load_dotenv()
 from groq import Groq
 from agent.prompts import QUIZ_SYSTEM, ANALYZE_SYSTEM, STRESS_SYSTEM
 
+import fitz  # pymupdf
+import base64
+from PIL import Image
+import io
+
+
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+def pdf_to_base64_images(pdf_bytes):
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    images = []
+    for page in doc:
+        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+        img_bytes = pix.tobytes("jpeg")
+        b64 = base64.b64encode(img_bytes).decode("utf-8")
+        images.append(b64)
+    doc.close()
+    return images
 
 def _parse(raw_text):
     try:
@@ -16,7 +33,7 @@ def _parse(raw_text):
     except Exception:
         return None
 
-def generate_quiz(topic, image_b64=None, num_questions=5, age=15):
+def generate_quiz(topic, image_b64=None, pdf_text=None, num_questions=5, age=15):
     messages = [{"role": "system", "content": QUIZ_SYSTEM}]
     
     if age <= 10:
@@ -28,7 +45,12 @@ def generate_quiz(topic, image_b64=None, num_questions=5, age=15):
     else:
         age_instruction = f"CRITICAL: The user is an adult/college student (age {age}). Use highly advanced terminology, complex conceptual questions, and nuanced distractors that require deep understanding."
 
-    if image_b64 is not None:
+    if pdf_text:
+        messages.append({
+            "role": "user",
+            "content": f"Based on these notes extracted from a PDF, generate a {num_questions}-question quiz:\n\n{pdf_text[:4000]}\n\n{age_instruction}"
+        })
+    elif image_b64 is not None:
         messages.append({
             "role": "user",
             "content": [
@@ -41,6 +63,7 @@ def generate_quiz(topic, image_b64=None, num_questions=5, age=15):
             "role": "user",
             "content": f"Generate a {num_questions}-question quiz on: {topic}.\n\n{age_instruction}"
         })
+
     try:
         model_name = "meta-llama/llama-4-scout-17b-16e-instruct" if image_b64 is not None else "llama-3.3-70b-versatile"
         response = client.chat.completions.create(
@@ -54,6 +77,7 @@ def generate_quiz(topic, image_b64=None, num_questions=5, age=15):
         return parsed
     except Exception as e:
         raise ValueError(f"OpenAI API Error: {str(e)}")
+
 
 def analyze_results(wrong_answers):
     if not wrong_answers:

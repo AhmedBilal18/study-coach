@@ -116,12 +116,15 @@ with col1:
         with colB:
             age = st.number_input("Your Age", min_value=5, max_value=100, value=15)
             
-        uploaded_file = st.file_uploader("Or upload a photo of your handwritten notes", type=["jpg", "jpeg", "png"])
-        
+        uploaded_file = st.file_uploader("Or upload a photo of your handwritten notes or a PDF", type=["jpg", "jpeg", "png", "pdf"])
+
         if uploaded_file is not None:
-            uploaded_file.seek(0)
-            st.image(uploaded_file, caption="Notes uploaded", use_container_width=True)
-            uploaded_file.seek(0)
+            if uploaded_file.type == "application/pdf":
+                st.info(f"📄 PDF uploaded: {uploaded_file.name}")
+            else:
+                uploaded_file.seek(0)
+                st.image(uploaded_file, caption="Notes uploaded", use_container_width=True)
+                uploaded_file.seek(0)
             
         sub_col1, sub_col2 = st.columns(2)
         with sub_col1:
@@ -134,18 +137,28 @@ with col1:
                 st.error("Please enter a topic first.")
                 st.stop()
                 
-            with st.spinner("Generating your quiz..."):
-                if uploaded_file is not None:
-                    image_b64 = base64.b64encode(uploaded_file.read()).decode("utf-8")
+            image_b64 = None
+            pdf_text = None
+
+            if uploaded_file is not None:
+                uploaded_file.seek(0)
+                if uploaded_file.type == "application/pdf":
+                    with st.spinner("Reading PDF..."):
+                        from agent.coach import extract_text_from_pdf
+                        pdf_text = extract_text_from_pdf(uploaded_file.read())
+                        if not pdf_text:
+                            st.error("Could not extract text from PDF. Make sure it is not a scanned image PDF.")
+                            st.stop()
                 else:
-                    image_b64 = None
-                    
-                try:
-                    quiz_result = generate_quiz(topic, image_b64, num_questions, age)
-                except ValueError as e:
-                    st.error(f"Failed to generate quiz. {str(e)}")
-                    st.info("If you are getting a 'insufficient_quota' error, it means your OpenAI account has run out of credits. Please visit platform.openai.com to top up your account.")
-                    st.stop()
+                    image_b64 = base64.b64encode(uploaded_file.read()).decode("utf-8")
+
+            try:
+                with st.spinner("Generating your quiz..."):
+                    quiz_result = generate_quiz(topic, image_b64=image_b64, pdf_text=pdf_text, num_questions=num_questions, age=age)
+            except ValueError as e:
+                st.error(f"Failed to generate quiz. {str(e)}")
+                st.info("If you are getting a 'insufficient_quota' error, it means your OpenAI account has run out of credits. Please visit platform.openai.com to top up your account.")
+                st.stop()
                     
                 st.session_state.quiz = quiz_result.get("questions", [])
                 st.session_state.current_q = 0

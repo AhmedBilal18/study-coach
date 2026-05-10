@@ -5,7 +5,7 @@ load_dotenv()
 from groq import Groq
 from agent.prompts import QUIZ_SYSTEM, ANALYZE_SYSTEM, STRESS_SYSTEM
 
-client = Groq(api_key=os.getenv(GROQ_API_KEY))
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def _parse(raw_text):
     try:
